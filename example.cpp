@@ -308,6 +308,33 @@ WINDOW **draw_ifk_menue()
 }
 
 
+WINDOW **draw_ifk_echo_test()
+{
+        WINDOW **ifkwin;
+
+        //getmaxyx(stdscr,row,col);
+
+        ifkwin=(WINDOW **)malloc(2*sizeof(WINDOW *));
+
+
+        ifkwin[0]=newwin(7,40,2,2);
+        //ifkwin[0]=newwin(30,30,int((row/2)-20),int((col/2)-35));
+        wbkgd(ifkwin[0],COLOR_PAIR(2));
+        box(ifkwin[0],ACS_VLINE,ACS_HLINE);
+
+        wmove(ifkwin[0],1,1);
+        waddstr(ifkwin[0],"Counter: 0");
+        wmove(ifkwin[0],3,1);
+        waddstr(ifkwin[0],"Error Cnt: 0");
+        wmove(ifkwin[0],5,1);
+        waddstr(ifkwin[0],"Send -- Receive: ");
+
+        wrefresh(ifkwin[0]);
+        return ifkwin;
+
+}
+
+
 void statusbar_update(WINDOW * statusbar)
 {
 	string scu_str(scu_adress);
@@ -802,6 +829,88 @@ void read_ifk()
 }
 
 
+void ifk_echo_test()
+{
+	WINDOW **ifkwin;
+
+	int key;
+	int random;
+	int count =0;
+	int ifkadr_int = 0;
+	int error_counter = 0;
+
+        WORD data_send = 0;
+        WORD data_read = 0;
+        DWORD status = status_ok;
+	DWORD errorstatus = status_ok;
+
+        BYTE ifk_code_wr = 0x13;
+        BYTE ifk_code_rd = 0x89;
+
+	ifkwin=draw_ifk_echo_test();
+	timeout(1);
+
+        werase(messagebar);
+        wprintw(messagebar,"Echo test. Press ESC to exit");
+        wrefresh(messagebar);
+
+	do{
+		count ++;
+
+		// zufalls wert
+                random = (rand()+rand());
+
+		// daten zurecht stutzen
+                data_send = random & 0xFF;
+
+		// ifk vin char in interger
+		ifkadr_int = (int)strtol(ifk_nummber, NULL, 16);
+
+		// data an ifk versenden
+		status = myscu.scu_milbus_ifk_wr (ifkadr_int, ifk_code_wr, data_send, errorstatus);
+		
+		// data von ifk lesen
+		status = myscu.scu_milbus_ifk_rd (ifkadr_int, ifk_code_rd, data_read, errorstatus);
+
+		// daten miteinander vergleichen
+                if(data_send != data_read)
+                {
+			error_counter++;
+
+        		wmove(ifkwin[0],1,10);
+        		wprintw(ifkwin[0],"%d",count);
+        		wmove(ifkwin[0],3,12);
+        		wprintw(ifkwin[0],"%d", error_counter);
+        		wmove(ifkwin[0],5,18);
+        		wprintw(ifkwin[0],"0x%04x -- 0x%04x", data_send, data_read);
+        		wrefresh(ifkwin[0]);
+                }
+
+
+		// counter alle 1000 ausgeben
+		if ((count % 1000) == 0)
+		{
+                        wmove(ifkwin[0],1,10);
+                        wprintw(ifkwin[0],"%d",count);
+			wrefresh(ifkwin[0]);
+
+	               // tastenabfrage
+	               key=getch();
+		}
+
+	} while(key != ESCAPE);
+
+	timeout(-1);
+
+        werase(messagebar);
+        wprintw(messagebar,"Choose your destiny. Press ESC to exit.");
+        wrefresh(messagebar);
+ 
+	touchwin(stdscr);
+        refresh();
+}
+
+
 void ifk_command()
 {
 	WINDOW **menu_items;
@@ -851,6 +960,20 @@ void ifk_command()
                 }
 
 
+                if (selected_item == 5){
+                        if (!ifk_select){
+                                statusbar_update(statusbar);
+                        } else{ 
+			
+				delwin(menu_items[0]);
+				touchwin(stdscr);
+                                refresh();
+
+				ifk_echo_test();
+			}		
+                }
+
+
 
         }while(selected_item >= 0);
 
@@ -870,6 +993,9 @@ int main()
 
 	init_curses();
 
+        // generator starten
+        srand((unsigned)time(NULL));
+
 	bkgd(COLOR_PAIR(1));
 
 	getmaxyx(stdscr,row,col);
@@ -887,17 +1013,9 @@ int main()
 	touchwin(stdscr);
         refresh();
 
-/*
-
-//	draw_ifk_menue(ifkwin);
-//	refresh();
-//	getchar();
-
-//	test();
 	touchwin(stdscr);
 	refresh();
 	getchar();
-*/
 
 	move(row-6,0);
 	printw("Press F2,F3 or F4 to open the menus. ");
