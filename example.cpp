@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <panel.h>
 #include <unistd.h>
 #include "scumil.h"
 #include <curses.h>
@@ -18,7 +18,7 @@ scu_mil myscu;
 
 WINDOW *menubar,*messagebar, *statusbar;
 
-
+// Farben definieren
 void init_curses()
 {
         initscr();
@@ -33,6 +33,7 @@ void init_curses()
         keypad(stdscr,TRUE);
 }
 
+// menuebar definieren
 void draw_menubar(WINDOW *menubar)
 {
         wbkgd(menubar,COLOR_PAIR(2));
@@ -44,7 +45,7 @@ void draw_menubar(WINDOW *menubar)
         waddstr(menubar,"IFK");
         wattron(menubar,COLOR_PAIR(3));
         waddstr(menubar,"(F3)");
-       wattroff(menubar,COLOR_PAIR(3));
+        wattroff(menubar,COLOR_PAIR(3));
         wmove(menubar,0,40);
         waddstr(menubar,"Extra");
         wattron(menubar,COLOR_PAIR(3));
@@ -52,7 +53,7 @@ void draw_menubar(WINDOW *menubar)
 	wattroff(menubar,COLOR_PAIR(3));
 }
 
-
+// fenster scu zeichnen
 WINDOW **draw_menu_scu(int start_col)
 {
         WINDOW **items;
@@ -71,7 +72,7 @@ WINDOW **draw_menu_scu(int start_col)
         return items;
 }
 
-
+// fenster ifk zeichen
 WINDOW **draw_menu_ifk(int start_col)
 {
         WINDOW **items;
@@ -94,7 +95,7 @@ WINDOW **draw_menu_ifk(int start_col)
         return items;
 }
 
-
+// fenster extra zeichnen
 WINDOW **draw_menu_extra(int start_col)
 {
         WINDOW **items;
@@ -113,7 +114,7 @@ WINDOW **draw_menu_extra(int start_col)
         return items;
 }
 
-
+// auswahl zuruecksetzten
 void delete_menu(WINDOW **items,int count)
 {
         int i;
@@ -122,115 +123,19 @@ void delete_menu(WINDOW **items,int count)
         free(items);
 }
 
-
-int scroll_menu(WINDOW **items,int count,int menu_start_col)
-{
-        int key;
-        int selected=0;
-        while (1) {
-                key=getch();
-                if (key==KEY_DOWN || key==KEY_UP) {
-                        wbkgd(items[selected+1],COLOR_PAIR(2));
-                        wnoutrefresh(items[selected+1]);
-                        if (key==KEY_DOWN) {
-                                selected=(selected+1) % count;
-                        } else {
-                                selected=(selected+count-1) % count;
-                        }
-                        wbkgd(items[selected+1],COLOR_PAIR(1));
-                        wnoutrefresh(items[selected+1]);
-                        doupdate();
-                } else if (key==ESCAPE) {
-                        return -1;
-                } else if (key==ENTER) {
-                        return selected;
-                }
-        }
-}
-
-
-void get_userinput(char *userinput)
-{
-	int row,col;
-   
-	getmaxyx(stdscr,row,col);
-	echo();
-
-	move(row-3,0);
-	waddstr(stdscr,"> ");
-	curs_set(1);
-	getstr(userinput);
-	move(row-3,0);
-	clrtobot();
-	noecho();
-	curs_set(0);
-}
-
-
-void exit(WINDOW *menubar,WINDOW *messagebar, WINDOW *statusbar)
-{
-	delwin(menubar);
-	delwin(messagebar);
-	delwin(statusbar);
-	endwin();
-}
-
-
+// nachrichtenfenster zeichen
 void draw_messagebar(WINDOW *base)
 {
 	wbkgd(base,COLOR_PAIR(2));
 }
 
-
+//  statusfenster zeichen
 void draw_statusbar(WINDOW *base)
 {
         wbkgd(base,COLOR_PAIR(4));
 }
 
-
-void get_scuadress(WINDOW *messagebar)
-{
-	DWORD status = 0;
-	DWORD error_status = 0;
-	string error_str;
-
-	char error_char[80];
-  
-	wprintw(messagebar,"Insert SCU adress. Example :tcp/scuxl0089.acc");
-	touchwin(stdscr);
-	refresh();
-
-
-	sprintf(scu_adress, "%.20s", "tcp/scuxl0089.acc");
-//	get_userinput(scu_adress);
-
-	werase(messagebar);
-	wprintw(messagebar,"Try connecting :%s",scu_adress); 
-	touchwin(stdscr);
-        refresh();
-
-        status = myscu.scu_milbusopen(scu_adress, error_status);
-        error_str = myscu.scu_milerror(status);
-
-	sprintf(error_char, "%.20s", error_str.c_str());
-
-	werase(messagebar);
-        wprintw(messagebar,"open scu :%s",error_char);	
-	touchwin(stdscr);
-        refresh();
-
-	if (status != status_ok){
-		scu_select = false;
-		ifk_select = false;
-	}
-	else {
-                scu_select = true;
-                ifk_select = false;
-	}
-
-}
-
-
+// fenster ifk diagnose zeichen
 WINDOW **draw_ifk_dia()
 {
         WINDOW **ifkwin;
@@ -253,7 +158,7 @@ WINDOW **draw_ifk_dia()
 	return ifkwin;
 }
 
-
+// fenster ifk commandos zeichen
 WINDOW **draw_ifk_command(int start_col)
 {
         WINDOW **items;
@@ -282,7 +187,7 @@ WINDOW **draw_ifk_command(int start_col)
         return items;
 }
 
-
+// fenster ifks online zeichen
 WINDOW **draw_ifk_menue()
 {
 	WINDOW **ifkwin;
@@ -307,7 +212,7 @@ WINDOW **draw_ifk_menue()
 
 }
 
-
+// fenster echo test zeichen
 WINDOW **draw_ifk_echo_test()
 {
         WINDOW **ifkwin;
@@ -327,14 +232,110 @@ WINDOW **draw_ifk_echo_test()
         wmove(ifkwin[0],3,1);
         waddstr(ifkwin[0],"Error Cnt: 0");
         wmove(ifkwin[0],5,1);
-        waddstr(ifkwin[0],"Send -- Receive: ");
+        waddstr(ifkwin[0],"Send -- Receive: Ok");
 
         wrefresh(ifkwin[0]);
         return ifkwin;
 
 }
 
+// durch auswahl scrollen
+int scroll_menu(WINDOW **items,int count,int menu_start_col)
+{
+        int key;
+        int selected=0;
+        while (1) {
+                key=getch();
+                if (key==KEY_DOWN || key==KEY_UP) {
+                        wbkgd(items[selected+1],COLOR_PAIR(2));
+                        wnoutrefresh(items[selected+1]);
+                        if (key==KEY_DOWN) {
+                                selected=(selected+1) % count;
+                        } else {
+                                selected=(selected+count-1) % count;
+                        }
+                        wbkgd(items[selected+1],COLOR_PAIR(1));
+                        wnoutrefresh(items[selected+1]);
+                        doupdate();
+                } else if (key==ESCAPE) {
+                        return -1;
+                } else if (key==ENTER) {
+                        return selected;
+                }
+        }
+}
 
+// user eingabe 
+void get_userinput(char *userinput)
+{
+        int row,col;
+
+        getmaxyx(stdscr,row,col);
+        echo();
+
+        move(row-3,0);
+        waddstr(stdscr,"> ");
+        curs_set(1);
+        getstr(userinput);
+        move(row-3,0);
+        clrtobot();
+        noecho();
+        curs_set(0);
+}
+
+// fenster schliessen
+void exit(WINDOW *menubar,WINDOW *messagebar, WINDOW *statusbar)
+{
+        delwin(menubar);
+        delwin(messagebar);
+        delwin(statusbar);
+        endwin();
+}
+
+// scu connectieren
+void get_scuadress(WINDOW *messagebar)
+{
+        DWORD status = 0;
+        DWORD error_status = 0;
+        string error_str;
+
+        char error_char[80];
+
+        wprintw(messagebar,"Insert SCU adress. Example :tcp/scuxl0089.acc");
+        touchwin(stdscr);
+        refresh();
+
+
+//      sprintf(scu_adress, "%.20s", "tcp/scuxl0089.acc");
+        get_userinput(scu_adress);
+
+        werase(messagebar);
+        wprintw(messagebar,"Try connecting :%s",scu_adress);
+        touchwin(stdscr);
+        refresh();
+
+        status = myscu.scu_milbusopen(scu_adress, error_status);
+        error_str = myscu.scu_milerror(status);
+
+        sprintf(error_char, "%.20s", error_str.c_str());
+
+        werase(messagebar);
+        wprintw(messagebar,"open scu :%s",error_char);
+        touchwin(stdscr);
+        refresh();
+
+        if (status != status_ok){
+                scu_select = false;
+                ifk_select = false;
+        }
+        else {
+                scu_select = true;
+                ifk_select = false;
+        }
+
+}
+
+// statusbar mit infos neu zeichnen
 void statusbar_update(WINDOW * statusbar)
 {
 	string scu_str(scu_adress);
@@ -360,6 +361,7 @@ void statusbar_update(WINDOW * statusbar)
 	output_str = scu_str+ "     "+ ifk_str;
 	sprintf(output_char, "%.70s", output_str.c_str());
 
+	// blinken
 	wbkgd(statusbar,COLOR_PAIR(5));
         werase(statusbar);
         wprintw(statusbar,"%s",output_char);
@@ -377,7 +379,7 @@ void statusbar_update(WINDOW * statusbar)
         refresh();
 }
 
-
+// milbus nach ifs absuchen & in eine liste schreiben
 int scan_milbus(int ifk_online[])
 {
         int countmax    = 256;
@@ -402,7 +404,7 @@ int scan_milbus(int ifk_online[])
 	return(found);
 }
 
-
+// koordiniert zeichen, abfrage, eingabe der ifk 
 void ifk_online()
 {
         WINDOW **ifkwin;
@@ -413,12 +415,16 @@ void ifk_online()
 
 	string userinput_str;
 
+	// wurde keine scu ausgewaehlt -> ende
         if (!scu_select){
                 statusbar_update(statusbar);
                 return;
         }
 
+	// fenster zeichen
         ifkwin=draw_ifk_menue();
+
+	// milbus nach ifks absuchen & anzeigen
 	ifk_found = scan_milbus(ifk_online);
 	
 	if (ifk_found == 0){
@@ -442,12 +448,14 @@ void ifk_online()
 		wrefresh(ifkwin[0]);
 	}
 	
+	// user ifk auswaehlen
 	wprintw(messagebar,"Enter IFK adress or press enter to exit.");
 	wrefresh(messagebar);
 
 	get_userinput(ifk_nummber);
 	userinput_str = string(ifk_nummber);
 	
+	// keine eingabe -> ende
 	if (userinput_str.size() != 0){
 		ifk_select= true;
 	} 
@@ -461,7 +469,8 @@ void ifk_online()
         refresh();
 }
 
-
+// permanente abfrage der ifks am bus. ausgefallende ifks 
+// werden seperat in eine liste gespeichert und angezeigt
 void ifk_dia()
 {
         WINDOW **ifkwin;
@@ -471,7 +480,6 @@ void ifk_dia()
 	int ifk_unstable[256];
         int ifk_found_a = 0;
 	int ifk_found_u = 0;
-	int ifk_found_b = 0;
 	int index   = 0;
         int index_a = 0;
 	int index_b = 0;
@@ -479,7 +487,7 @@ void ifk_dia()
 	bool ifk_found = false;
 	int key;
 
-
+	// keine scu angewaehlt -> ende
         if (!scu_select){
                 statusbar_update(statusbar);
                 return;
@@ -546,7 +554,7 @@ void ifk_dia()
                 }while (index_a < ifk_found_a);
 
 		// ifks am bus ermitteln 
-		ifk_found_b = scan_milbus(ifk_online_b);
+		scan_milbus(ifk_online_b);
 		index_a = 0;
 		
 		// liste A mit B vergleichen
@@ -603,10 +611,9 @@ void ifk_dia()
 		}while(index_a < 255);
 
 		key=getch();
-		if(key== ESCAPE) {
-			timeout(-1);
-			return;
-		} else if(key== KEY_BACKSPACE){
+
+		// bei BACKSPACE liste unstable ifks loeschen
+		if(key== KEY_BACKSPACE){
 
 			index = 0;
 			ifk_found_u = 0;
@@ -616,10 +623,12 @@ void ifk_dia()
        			 }while(index < 255);
 		}
 
-	}while(true);
+	}while(key != ESCAPE);
+
+	timeout(-1);
 }
 
-
+// daten auf den milbus schreiben
 void write_data()
 {
 	char data_mil[5];
@@ -660,7 +669,7 @@ void write_data()
         wrefresh(messagebar);
 }
 
-
+// commando wort auf den milbus schreiben
 void write_cmd()
 {
         char cmd_mil[5];
@@ -702,7 +711,7 @@ void write_cmd()
         wrefresh(messagebar);
 }
 
-
+// ein datum von dem milbus lesen
 void read_data()
 {
         DWORD status = status_ok;
@@ -718,7 +727,7 @@ void read_data()
         wrefresh(messagebar);
 }
 
-
+// an eine ifk ein commando wort und ein datum schreiben
 void write_ifk()
 {
         DWORD errorstatus = status_ok;
@@ -784,7 +793,7 @@ void write_ifk()
         wrefresh(messagebar);
 }
 
-
+// von einer ifk ein datum mit einem comando wort lesen
 void read_ifk()
 {
         DWORD errorstatus = status_ok;
@@ -828,7 +837,8 @@ void read_ifk()
         wrefresh(messagebar);
 }
 
-
+// liest und schreibt ein datum an das echo register einer ifk
+// vergleicht die werte und gibt ggf. einen fehler aus
 void ifk_echo_test()
 {
 	WINDOW **ifkwin;
@@ -841,7 +851,6 @@ void ifk_echo_test()
 
         WORD data_send = 0;
         WORD data_read = 0;
-        DWORD status = status_ok;
 	DWORD errorstatus = status_ok;
 
         BYTE ifk_code_wr = 0x13;
@@ -867,12 +876,12 @@ void ifk_echo_test()
 		ifkadr_int = (int)strtol(ifk_nummber, NULL, 16);
 
 		// data an ifk versenden
-		status = myscu.scu_milbus_ifk_wr (ifkadr_int, ifk_code_wr, data_send, errorstatus);
+		myscu.scu_milbus_ifk_wr (ifkadr_int, ifk_code_wr, data_send, errorstatus);
 		
 		// data von ifk lesen
-		status = myscu.scu_milbus_ifk_rd (ifkadr_int, ifk_code_rd, data_read, errorstatus);
+		myscu.scu_milbus_ifk_rd (ifkadr_int, ifk_code_rd, data_read, errorstatus);
 
-		// daten miteinander vergleichen
+		// daten miteinander vergleichen & ausgeben
                 if(data_send != data_read)
                 {
 			error_counter++;
@@ -910,7 +919,7 @@ void ifk_echo_test()
         refresh();
 }
 
-
+// verwaltung fuer das fenster ifk_command
 void ifk_command()
 {
 	WINDOW **menu_items;
@@ -973,8 +982,6 @@ void ifk_command()
 			}		
                 }
 
-
-
         }while(selected_item >= 0);
 
 	werase(messagebar);
@@ -996,10 +1003,12 @@ int main()
         // generator starten
         srand((unsigned)time(NULL));
 
+	// farben fuer das main fenster festlegen
 	bkgd(COLOR_PAIR(1));
 
 	getmaxyx(stdscr,row,col);
 
+	// statuszeilen usw zeichen
 	menubar=subwin(stdscr,1,col,0,0);
 	messagebar=subwin(stdscr,1,col,row-4,0);   
 	statusbar=subwin(stdscr,1,col,row-5,0);
@@ -1010,23 +1019,18 @@ int main()
 
 	statusbar_update(statusbar);	
         
-	touchwin(stdscr);
-        refresh();
-
-	touchwin(stdscr);
-	refresh();
-	getchar();
-
 	move(row-6,0);
 	printw("Press F2,F3 or F4 to open the menus. ");
 	printw("ESC quits.");
 
+	touchwin(stdscr);
 	refresh();
 
 	do {
 		int selected_item;
 		WINDOW **menu_items;
 
+		// abfrage der menueleiste
 		key=getch();
         	werase(messagebar);
         	wrefresh(messagebar);
@@ -1080,7 +1084,7 @@ int main()
             		refresh();
        		 } else if (key==KEY_F(4)) {
             		menu_items=draw_menu_extra(40);
-            		selected_item=scroll_menu(menu_items,5,6);
+            		selected_item=scroll_menu(menu_items,1,0);
             		delete_menu(menu_items,2);
             	if (selected_item<0)
                 	wprintw(messagebar,"You haven't selected any item.");
